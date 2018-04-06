@@ -1,15 +1,28 @@
-FROM tomcat:7.0
+FROM debian
 
-ENV CATALINA_OPTS="-Xms1024M -Xmx5000M -XX:MaxPermSize=2000m -server -XX:+UseParallelGC -Djava.awt.headless=true -Duser.timezone=America/Fortaleza -Duser.language=pt -Duser.region=BR"
+MAINTAINER alvaro@alvarobacelar.com
 
-RUN apt-get update && apt-get install vim -y
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
+default-jdk unzip
 
+# Configure apache tomcat
+ADD http://repo2.maven.org/maven2/org/apache/tomcat/tomcat/7.0.69/tomcat-7.0.69.tar.gz ./
+RUN tar xvzf tomcat-7.0.69.tar.gz
+RUN mv apache-tomcat-7.0.69 /opt/tomcat7
+RUN rm -rf tomcat-7.0.69.tar.gz
+
+ENV JAVA_HOME /usr/lib/jvm/default-java
+ENV CATALINA_HOME /opt/tomcat7
+ENV PATH $CATALINA_HOME/bin:$PATH
+
+# configure extra
 ADD . /home
-
-RUN mv /home/web.xml /usr/local/tomcat/conf/web.xml
-#RUN mv /home/server.xml /usr/local/tomcat/conf/server.xml
-RUN mv /home/catalina.properties /usr/local/tomcat/conf/catalina.properties
-RUN cp /usr/share/zoneinfo/America/Fortaleza /etc/timezone
+RUN mv /home/web.xml $CATALINA_HOME/conf/web.xml
+RUN mv /home/catalina.properties $CATALINA_HOME/conf/catalina.properties
+RUN mv /usr/share/zoneinfo/America/Fortaleza /etc/timezone
 RUN mv /home/localtime /etc/localtime
+RUN ln -s $CATALINA_HOME /usr/local/tomcat
+WORKDIR $CATALINA_HOME
 
-VOLUME ["/usr/local/tomcat/logs"]
+EXPOSE 8080
+CMD ["catalina.sh", "run"]
